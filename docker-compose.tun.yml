@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  clash-tun:
+    build: .
+    container_name: clash-docker-tun
+    restart: unless-stopped
+    
+    # Tun模式需要特权模式和host网络
+    privileged: true
+    network_mode: host
+    
+    environment:
+      # 订阅链接 (必填)
+      - CLASH_URL=${CLASH_URL:-https://your-subscription-url-here}
+      # Web控制台密钥 (建议设置)
+      - CLASH_SECRET=${CLASH_SECRET:-}
+      # 日志级别
+      - CLASH_LOG_LEVEL=${CLASH_LOG_LEVEL:-info}
+      # 时区
+      - TZ=${TZ:-Asia/Shanghai}
+    
+    volumes:
+      # 数据持久化
+      - clash-tun-data:/opt/clash
+      # 挂载自定义mixin配置（启用Tun模式）
+      - ./config/mixin-tun.yaml:/opt/clash/mixin.yaml:ro
+    
+    # Tun模式所需权限
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+      - SYS_ADMIN
+    
+    # 设备映射
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    
+    # 内核模块
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.forwarding=1
+    
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  clash-tun-data:

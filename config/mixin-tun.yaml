@@ -1,0 +1,61 @@
+# Docker Tun模式配置文件
+
+# 系统代理配置
+system-proxy:
+  enable: false # Docker环境中禁用系统代理
+
+# Web 控制台配置
+external-controller: "0.0.0.0:9090"
+external-ui: public
+secret:
+
+# 代理服务器配置
+allow-lan: true
+bind-address: "0.0.0.0"
+authentication:
+  # - "username:password" # 可以设置用户验证
+
+# 代理端口配置
+port: 7890      # HTTP代理端口
+socks-port: 7891 # SOCKS5代理端口
+mixed-port: 7892 # 混合代理端口
+
+# 自定义规则
+rules:
+  - DOMAIN,api64.ipify.org,DIRECT # 用于获取真实公网 IP
+
+# Tun 配置 (启用)
+tun:
+  enable: true
+  stack: system
+  auto-route: true
+  auto-redir: true # clash
+  auto-redirect: true # mihomo
+  auto-detect-interface: true
+  dns-hijack:
+    - any:53
+    - tcp://any:53
+  strict-route: true
+  # Docker环境排除接口
+  exclude-interface:
+    - docker0
+    - podman0
+    - br-*
+    - veth*
+
+# DNS 配置
+dns:
+  enable: true
+  listen: 0.0.0.0:1053
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  nameserver:
+    - 114.114.114.114
+    - 8.8.8.8
+    - 1.1.1.1
+  fallback:
+    - tls://8.8.4.4
+    - tls://1.0.0.1
+
+# 日志配置
+log-level: info

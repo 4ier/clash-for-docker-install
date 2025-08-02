@@ -9,15 +9,96 @@
 - 默认安装 `mihomo` 内核，[可选安装](https://github.com/nelvko/clash-for-linux-install/wiki/FAQ#%E5%AE%89%E8%A3%85-clash-%E5%86%85%E6%A0%B8) `clash`。
 - 自动使用 [subconverter](https://github.com/tindy2013/subconverter) 进行本地订阅转换。
 - 多架构支持，适配主流 `Linux` 发行版：`CentOS 7.6`、`Debian 12`、`Ubuntu 24.04.1 LTS`。
+- 🐳 **新增 Docker 支持**：一键部署，支持普通模式和 Tun 模式。
 
 ## 快速开始
 
-### 环境要求
+### 🐳 Docker 部署 (推荐)
+
+#### 环境要求
+
+- Docker 20.10+
+- Docker Compose 2.0+
+
+#### 基本使用
+
+```bash
+# 克隆项目
+git clone --branch master --depth 1 https://gh-proxy.com/https://github.com/nelvko/clash-for-linux-install.git
+cd clash-for-linux-install
+
+# 复制环境变量模板
+cp .env.example .env
+
+# 编辑配置文件，设置订阅链接
+vim .env
+# 设置 CLASH_URL=https://your-subscription-url
+
+# 启动服务
+docker-compose up -d
+```
+
+#### 快速启动命令
+
+```bash
+# 一键启动 (请替换为您的订阅链接)
+CLASH_URL="https://your-subscription-url" \
+CLASH_SECRET="your-secret" \
+docker-compose up -d
+```
+
+#### Tun 模式部署
+
+```bash
+# 使用专用的 Tun 模式配置
+CLASH_URL="https://your-subscription-url" \
+docker-compose -f docker-compose.tun.yml up -d
+```
+
+#### 服务管理
+
+```bash
+# 查看状态
+docker-compose ps
+
+# 查看日志
+docker-compose logs -f
+
+# 重启服务
+docker-compose restart
+
+# 停止服务
+docker-compose down
+
+# 更新配置后重启
+docker-compose down && docker-compose up -d
+```
+
+#### 访问控制台
+
+- Web 控制台：http://localhost:9090/ui
+- 代理端口：
+  - HTTP: 7890
+  - SOCKS5: 7891  
+  - 混合代理: 7892
+
+#### 环境变量说明
+
+| 变量名 | 说明 | 默认值 | 示例 |
+|--------|------|--------|------|
+| `CLASH_URL` | 订阅链接 (必填) | - | `https://example.com/sub` |
+| `CLASH_SECRET` | Web控制台密钥 | 空 | `your-random-secret` |
+| `CLASH_LOG_LEVEL` | 日志级别 | `info` | `warning`, `debug` |
+| `TZ` | 时区 | `Asia/Shanghai` | `UTC` |
+
+### 📦 传统安装
+
+#### 环境要求
 
 - 用户权限：`root`、`sudo`。（无权限可参考：[#91](https://github.com/nelvko/clash-for-linux-install/issues/91)）
 - `shell` 支持：`bash`、`zsh`、`fish`。
 
-### 一键安装
+#### 一键安装
 
 下述命令适用于 `x86_64` 架构，其他架构请戳：[一键安装-多架构](https://github.com/nelvko/clash-for-linux-install/wiki#%E4%B8%80%E9%94%AE%E5%AE%89%E8%A3%85-%E5%A4%9A%E6%9E%B6%E6%9E%84)
 
@@ -147,6 +228,73 @@ $ clashmixin -r
 
 ```bash
 sudo bash uninstall.sh
+```
+
+## 🐳 Docker 常见问题
+
+### 启动问题
+
+**Q: 容器启动失败，提示配置无效**
+```bash
+# 检查环境变量是否正确设置
+docker-compose config
+
+# 查看详细错误日志
+docker-compose logs
+```
+
+**Q: 无法访问Web控制台**
+```bash
+# 检查端口是否被占用
+netstat -tulpn | grep 9090
+
+# 确保防火墙允许访问
+sudo ufw allow 9090
+```
+
+### Tun模式问题
+
+**Q: Tun模式启动失败**
+```bash
+# 确保有足够权限
+docker-compose -f docker-compose.tun.yml up -d
+
+# 检查内核模块
+modprobe tun
+```
+
+**Q: Docker容器中无法使用代理**
+- Tun模式下Docker容器会自动路由
+- 普通模式需要在容器中设置代理环境变量
+
+### 配置更新
+
+**Q: 如何更新订阅配置**
+```bash
+# 重启容器会自动重新下载订阅
+docker-compose restart
+
+# 或者设置新的订阅链接
+CLASH_URL="new-subscription-url" docker-compose up -d
+```
+
+**Q: 如何自定义配置**
+```bash
+# 挂载自定义配置目录
+# 在docker-compose.yml中添加：
+# volumes:
+#   - ./config:/opt/clash
+```
+
+### 数据备份
+
+**Q: 如何备份配置数据**
+```bash
+# 备份Docker卷
+docker run --rm -v clash-data:/data -v $(pwd):/backup alpine tar czf /backup/clash-backup.tar.gz -C /data .
+
+# 恢复数据
+docker run --rm -v clash-data:/data -v $(pwd):/backup alpine tar xzf /backup/clash-backup.tar.gz -C /data
 ```
 
 ## 常见问题

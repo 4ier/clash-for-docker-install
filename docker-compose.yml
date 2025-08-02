@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  clash:
+    build: .
+    container_name: clash-docker
+    restart: unless-stopped
+    
+    # 环境变量配置
+    environment:
+      # 订阅链接 (必填)
+      - CLASH_URL=https://your-subscription-url-here
+      # Web控制台密钥 (可选，建议设置)
+      - CLASH_SECRET=your-secret-here
+      # 日志级别 (可选: silent, error, warning, info, debug)
+      - CLASH_LOG_LEVEL=info
+      # 时区
+      - TZ=Asia/Shanghai
+    
+    # 端口映射
+    ports:
+      # Web控制台
+      - "9090:9090"
+      # HTTP代理
+      - "7890:7890"
+      # SOCKS5代理
+      - "7891:7891"
+      # 混合代理 (HTTP+SOCKS5)
+      - "7892:7892"
+      # DNS服务
+      - "1053:1053"
+    
+    # 数据持久化
+    volumes:
+      - clash-data:/opt/clash
+      # 可选：挂载自定义配置
+      # - ./config:/opt/clash
+    
+    # 网络配置
+    networks:
+      - clash-network
+    
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+# Tun模式配置 (需要特权模式)
+  clash-tun:
+    build: .
+    container_name: clash-docker-tun
+    restart: unless-stopped
+    
+    # 特权模式 (Tun模式必需)
+    privileged: true
+    network_mode: host
+    
+    environment:
+      - CLASH_URL=https://your-subscription-url-here
+      - CLASH_SECRET=your-secret-here
+      - CLASH_LOG_LEVEL=info
+      - TZ=Asia/Shanghai
+    
+    volumes:
+      - clash-tun-data:/opt/clash
+    
+    # Tun模式配置
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    
+    devices:
+      - /dev/net/tun
+    
+    # 仅在需要Tun模式时启用此服务
+    profiles:
+      - tun
+
+networks:
+  clash-network:
+    driver: bridge
+
+volumes:
+  clash-data:
+  clash-tun-data:

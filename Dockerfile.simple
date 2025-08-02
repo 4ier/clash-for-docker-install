@@ -1,0 +1,42 @@
+FROM alpine:3.18
+
+# 设置时区
+ENV TZ=Asia/Shanghai
+
+# 创建工作目录
+WORKDIR /app
+
+# 复制项目文件（所有必需的二进制文件都在resources/zip中）
+COPY . .
+
+# 安装基础包（不需要网络的包）
+RUN apk add --no-cache bash gzip tar
+
+# 创建clash目录
+RUN mkdir -p /opt/clash
+
+# 初始化Clash环境
+RUN cd /app && \
+    mkdir -p /opt/clash/bin && \
+    /usr/bin/install -D <(gzip -dc resources/zip/mihomo-linux-amd64-v1-v1.19.12.gz) /opt/clash/bin/mihomo && \
+    tar -xf resources/zip/subconverter_linux64.tar.gz -C /opt/clash/bin && \
+    tar -xf resources/zip/yq_linux_amd64.tar.gz -C /opt/clash/bin && \
+    mv /opt/clash/bin/yq_* /opt/clash/bin/yq && \
+    tar -xf resources/zip/yacd.tar.xz -C /opt/clash && \
+    cp -rf script /opt/clash/ && \
+    cp -f resources/mixin.yaml /opt/clash/ && \
+    cp -f resources/Country.mmdb /opt/clash/ && \
+    chmod +x /opt/clash/bin/*
+
+# 复制启动脚本
+COPY docker-entrypoint-simple.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
+
+# 暴露端口
+EXPOSE 9090 7890 7891 7892 1053
+
+# 设置数据卷
+VOLUME ["/opt/clash"]
+
+# 入口点
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

@@ -3,3 +3,6 @@
 config.yaml
 resources/bin/**
 !.gitkeep
+.env
+.env.local
+*.log
